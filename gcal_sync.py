@@ -4,7 +4,7 @@
 # Description: Script for synchronizing the events matching the defined criteria
 #              between two Google calendars.
 # Author: Tomaž Muraus (http://www.tomaz-muraus.info)
-# Version: 1.0
+# Version: 1.1.0
 # License: GPL
 
 # Requirements:
