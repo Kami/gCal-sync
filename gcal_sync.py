@@ -47,14 +47,35 @@ class CalendarSync:
                 request_feed.AddInsert(entry = self.__create_event_copy(event))
                 matches_count += 1
        
-        logging.info('Found %d events matching the copy criteria (%s = %s)' % (matches_count, config.get('copy_criteria', 'field'), config.get('copy_criteria', 'value')))
+        logging.info('Found %d events matching the criteria (%s = %s)' % (matches_count, config.get('copy_criteria', 'field'), config.get('copy_criteria', 'value')))
         
         if matches_count > 0:
             response_feed = self.calendar_service.ExecuteBatch(request_feed, '/calendar/feeds/' + config.get('calendars', 'target_calendar') + '/private/full/batch')
             inserted = len(response_feed.entry)
             
             logging.info('%d events synchronized (%s -> %s)' % (inserted, self.source_calendar, self.target_calendar))
+            
+        self.__delete_orphaned_events()
+            
+    def __delete_orphaned_events(self):
+        """ Find the future events matching the defined criteria which exist on the target but not on the source calendar
+        (events which were deleted) and delete them from the target calendar."""
         
+        request_feed = gdata.calendar.CalendarEventFeed()
+        matches_count = 0
+        for i, event in enumerate(self.__get_future_events(self.target_calendar).entry):
+            if self.__event_matches_copy_criteria(event) and not self.__event_exists(event, self.source_calendar):
+                request_feed.AddDelete(entry = event)
+                matches_count += 1
+                
+        logging.info('Found %d orphaned events matching the criteria (%s = %s)' % (matches_count, config.get('copy_criteria', 'field'), config.get('copy_criteria', 'value')))
+        
+        if matches_count > 0:
+            response_feed = self.calendar_service.ExecuteBatch(request_feed, '/calendar/feeds/' + config.get('calendars', 'target_calendar') + '/private/full/batch')
+            deleted = len(response_feed.entry)
+            
+            logging.info('%d orphaned events deleted from the target calendar (%s)' % (deleted, self.target_calendar))
+
     def __get_future_events(self, calendar):
         """ Return the upcoming events.
 
